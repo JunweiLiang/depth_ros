@@ -38,6 +38,23 @@ parser.add_argument("--save_to_avi", default=None, help="save the visualization/
 parser.add_argument("--image_size", default="640x480")
 parser.add_argument("--rgbd_topic", default="/go2/d435i/rgbd")
 
+
+def parse_intrinsics(cameraInfo):
+    intrinsics = rs2.intrinsics()
+    intrinsics.width = cameraInfo.width
+    intrinsics.height = cameraInfo.height
+    intrinsics.ppx = cameraInfo.k[2]
+    intrinsics.ppy = cameraInfo.k[5]
+    intrinsics.fx = cameraInfo.k[0]
+    intrinsics.fy = cameraInfo.k[4]
+    if cameraInfo.distortion_model == 'plumb_bob':
+        intrinsics.model = rs2.distortion.brown_conrady
+    elif cameraInfo.distortion_model == 'equidistant':
+        intrinsics.model = rs2.distortion.kannala_brandt4
+    intrinsics.coeffs = [i for i in cameraInfo.d]
+    return intrinsics
+
+
 class ImageListener(Node):
     def __init__(self, rgbd_topic, node_name="image_listener"):
         super().__init__(node_name)
@@ -50,56 +67,46 @@ class ImageListener(Node):
         self.frame_count = 0
 
         self.intrinsics = None
-        self.pix = None
-        self.pix_grade = None
+
 
     def rgbdCallback(self, data):
         # here the data is parse as the RGBD message type
+
+        """
         print(dir(data))
-        raise Exception("done.")
-        return
+        ['SLOT_TYPES', '__class__', '__delattr__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getstate__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__slots__', '__str__', '__subclasshook__', '_check_fields', '_depth', '_depth_camera_info', '_fields_and_field_types', '_header', '_rgb', '_rgb_camera_info', 'depth', 'depth_camera_info', 'get_fields_and_field_types', 'header', 'rgb', 'rgb_camera_info']
+        # see here: https://github.com/IntelRealSense/realsense-ros/blob/ros2-master/realsense2_camera_msgs/msg/RGBD.msg
+        """
 
-        cv_image = self.bridge.imgmsg_to_cv2(data, data.encoding)
-        # pick one pixel among all the pixels with the closest range:
-        indices = np.array(np.where(cv_image == cv_image[cv_image > 0].min()))[:,0]
-        pix = (indices[1], indices[0])
-        self.pix = pix
-        line = '\rDepth at pixel(%3d, %3d): %7.1f(mm).' % (pix[0], pix[1], cv_image[pix[1], pix[0]])
+        color_data = data.rgb
+        depth_data = data.depth
 
-        if self.intrinsics:
-            depth = cv_image[pix[1], pix[0]]
-            result = rs2.rs2_deproject_pixel_to_point(self.intrinsics, [pix[0], pix[1]], depth)
-            line += '  Coordinate: %8.2f %8.2f %8.2f.' % (result[0], result[1], result[2])
-        if (not self.pix_grade is None):
-            line += ' Grade: %2d' % self.pix_grade
-        line += '\r'
-        sys.stdout.write(line)
-        sys.stdout.flush()
-
-        depth_frame = aligned_frames.get_depth_frame()
-        color_frame = aligned_frames.get_color_frame()
-
-        # frame_count start from 1
-        frame_count += 1
-
-        # junwei: the color_intrin and depth_intrin are the same as they are aligned.
-        #### 获取相机参数 ####
-        aligned_depth_frame = aligned_frames.get_depth_frame()  # 获取对齐帧中的的depth帧
-        aligned_color_frame = aligned_frames.get_color_frame()  # 获取对齐帧中的的color帧
-        depth_intrin = aligned_depth_frame.profile.as_video_stream_profile().intrinsics  # 获取深度参数（像素坐标系转相机坐标系会用到）
-        # [ 640x480  p[325.217 238.38]  f[385.38 384.848]  Inverse Brown Conrady [-0.0565123 0.067672 0.000208852 0.000719325 -0.0218305] ]
-        color_intrin = aligned_color_frame.profile.as_video_stream_profile().intrinsics  # 获取相机内参
-
-        #print(depth_intrin, color_intrin)
+        color_frame = self.bridge.imgmsg_to_cv2(color_data, color_data.encoding)
+        depth_frame = self.bridge.imgmsg_to_cv2(depth_data, depth_data.encoding)
 
         # Convert images to numpy arrays
         depth_image = np.asanyarray(depth_frame.get_data())
         color_image = np.asanyarray(color_frame.get_data())
-        # (720, 1280, 3), (720, 1280)
-        #print(color_image.shape, depth_image.shape)
-        #print(depth_image[240, 320]) # 单位：毫米
+
+        # frame_count start from 1
+        self.frame_count += 1
+
+        if not self.intrinsics:
+            # camera intrinsics only need to read once
+            self.intrinsics = parse_intrinsics(data.rgb_camera_info)
+
+        print(depth_image.shape, color_image.shape)
+        print(self.intrinsics)
 
 
+        #depth_intrin = aligned_depth_frame.profile.as_video_stream_profile().intrinsics  # 获取深度参数（像素坐标系转相机坐标系会用到）
+        # [ 640x480  p[325.217 238.38]  f[385.38 384.848]  Inverse Brown Conrady [-0.0565123 0.067672 0.000208852 0.000719325 -0.0218305] ]
+
+
+        print(data.header)
+
+        raise Exception("done.")
+        return
         # for visualization
 
         # showing two points' depth
