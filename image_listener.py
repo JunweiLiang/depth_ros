@@ -148,7 +148,8 @@ class ImageListener(Node):
 
         image = image_resize(image, width=1280, height=None)
 
-        print_once("image shape: %s" % list(image.shape[:2]))
+        # 2*image_width, image_height
+        #print_once("image shape: %s" % list(image.shape[:2]))
 
         # show the fps in the visualization
         current_timestamp = time.time()
@@ -160,9 +161,11 @@ class ImageListener(Node):
 
         # put a timestamp for the frame for possible synchronization
         # and a frame index to look up depth data
-        current_time_str = datetime.strptime(str(current_timestamp), '%Y-%m-%d %H:%M:%S')
+        current_time_str = datetime.fromtimestamp(current_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
         data_timestamp = data.header.stamp.sec # integer time stamp in seconds
-        data_time_str = datetime.strptime(str(data_timestamp), '%Y-%m-%d %H:%M:%S')
+        data_time_str = datetime.fromtimestamp(data_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
         image = cv2.putText(
             image, "#%d: %s" % (self.frame_count, current_time_str),
             (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
