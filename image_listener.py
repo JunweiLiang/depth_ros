@@ -93,12 +93,11 @@ class ImageListener(Node):
             # camera intrinsics only need to read once
             self.intrinsics = parse_intrinsics(data.rgb_camera_info)
 
+        #(480, 640) (480, 640, 3)
+        # [ 640x480  p[308.003 247.865]  f[607.814 607.763]  Brown Conrady [0 0 0 0 0] ]
+        print(depth_image[250:255, 320:330])
         print(depth_image.shape, color_image.shape)
-        print(self.intrinsics)
-
-
-        #depth_intrin = aligned_depth_frame.profile.as_video_stream_profile().intrinsics  # 获取深度参数（像素坐标系转相机坐标系会用到）
-        # [ 640x480  p[325.217 238.38]  f[385.38 384.848]  Inverse Brown Conrady [-0.0565123 0.067672 0.000208852 0.000719325 -0.0218305] ]
+        #print(self.intrinsics)
 
 
         print(data.header)
