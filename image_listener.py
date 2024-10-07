@@ -81,12 +81,10 @@ class ImageListener(Node):
         color_data = data.rgb
         depth_data = data.depth
 
-        color_frame = self.bridge.imgmsg_to_cv2(color_data, color_data.encoding)
-        depth_frame = self.bridge.imgmsg_to_cv2(depth_data, depth_data.encoding)
+        # already numpy array
+        color_image = self.bridge.imgmsg_to_cv2(color_data, color_data.encoding)
+        depth_image = self.bridge.imgmsg_to_cv2(depth_data, depth_data.encoding)
 
-        # Convert images to numpy arrays
-        depth_image = np.asanyarray(depth_frame.get_data())
-        color_image = np.asanyarray(color_frame.get_data())
 
         # frame_count start from 1
         self.frame_count += 1
