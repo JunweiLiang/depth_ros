@@ -72,6 +72,11 @@ class ImageListener(Node):
         # depth_value * depth_scale -> meters
         self.depth_scale = 0.001
 
+        self.delay_time_list = []  # record the delay in average seconds
+
+        # for video writer
+        self.out = None
+
 
     def rgbdCallback(self, data):
         # here the data is parse as the RGBD message type
@@ -164,20 +169,20 @@ class ImageListener(Node):
         current_time_str = datetime.fromtimestamp(current_timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
         data_timestamp = data.header.stamp.sec # integer time stamp in seconds
-        data_time_str = datetime.fromtimestamp(data_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+        #data_time_str = datetime.fromtimestamp(data_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
+        delay_time = abs(current_timestamp - data_timestamp)
+        self.delay_time_list.append(delay_time)
+        current_delay = np.mean(self.delay_time_listy)
 
         image = cv2.putText(
-            image, "#%d: %s" % (self.frame_count, current_time_str),
+            image, "#%d: %s (delay: %.4fs)" % (self.frame_count, current_time_str, current_delay),
             (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
             fontScale=1, color=(0, 0, 255), thickness=2)
 
-        print(current_time_str, data_time_str)
-        raise Exception("done.")
-        return
-
         if args.save_to_avi is not None:
 
-            out.write(image)
+            listener.out.write(image)
 
         # Show the image
         cv2.imshow('RGB and Depth Stream', image)
@@ -206,7 +211,7 @@ if __name__ == "__main__":
             # the visualization video size
             width_height = (image_width*2, image_height)
 
-            out = cv2.VideoWriter(args.save_to_avi, fourcc, 30.0, width_height)
+            listener.out = cv2.VideoWriter(args.save_to_avi, fourcc, 30.0, width_height)
 
         while True:
 
@@ -221,6 +226,7 @@ if __name__ == "__main__":
 
         listener.destroy_node()
         rclpy.shutdown()
-        if args.save_to_avi is not None:
-            out.release()
         cv2.destroyAllWindows()
+        if args.save_to_avi is not None:
+            listener.out.release()
+
