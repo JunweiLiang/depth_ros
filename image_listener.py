@@ -24,7 +24,7 @@ from realsense2_camera_msgs.msg import RGBD
 import sys
 import argparse
 import numpy as np
-import datetime
+from datetime import datetime
 import time # for fps compute
 
 from utils import image_resize
