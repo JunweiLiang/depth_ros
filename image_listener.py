@@ -79,9 +79,6 @@ class ImageListener(Node):
         depth_frame = aligned_frames.get_depth_frame()
         color_frame = aligned_frames.get_color_frame()
 
-        if not depth_frame or not color_frame:
-            continue
-
         # frame_count start from 1
         frame_count += 1
 
