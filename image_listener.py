@@ -173,7 +173,7 @@ class ImageListener(Node):
 
         delay_time = abs(current_timestamp - data_timestamp)
         self.delay_time_list.append(delay_time)
-        current_delay = np.mean(self.delay_time_listy)
+        current_delay = np.mean(self.delay_time_list)
 
         image = cv2.putText(
             image, "#%d: %s (delay: %.4fs)" % (self.frame_count, current_time_str, current_delay),
