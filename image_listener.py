@@ -63,10 +63,14 @@ class ImageListener(Node):
         self.sub = self.create_subscription(RGBD, rgbd_topic, self.rgbdCallback, 1) # queue_size
 
         # define some global variables, used in callbacks
-        self.start_time = time.time()
+        self.start_timestamp = time.time() # in secs
         self.frame_count = 0
 
         self.intrinsics = None
+
+        # for realsense
+        # depth_value * depth_scale -> meters
+        self.depth_scale = 0.001
 
 
     def rgbdCallback(self, data):
@@ -89,32 +93,32 @@ class ImageListener(Node):
         # frame_count start from 1
         self.frame_count += 1
 
+
         if not self.intrinsics:
             # camera intrinsics only need to read once
             self.intrinsics = parse_intrinsics(data.rgb_camera_info)
 
         #(480, 640) (480, 640, 3)
+        # [[2402 2393 2393 2384 2375 2375 2366 2366 2366 2357] # so the depth should be in mm
         # [ 640x480  p[308.003 247.865]  f[607.814 607.763]  Brown Conrady [0 0 0 0 0] ]
-        print(depth_image[250:255, 320:330])
-        print(depth_image.shape, color_image.shape)
+        #print(depth_image[250:255, 320:330])
+        #print(depth_image.shape, color_image.shape)
         #print(self.intrinsics)
 
+        # std_msgs.msg.Header(stamp=builtin_interfaces.msg.Time(sec=1728308261, nanosec=500469238), frame_id='camera_rgbd_optical_frame')
+        #print(data.header)
 
-        print(data.header)
-
-        raise Exception("done.")
-        return
         # for visualization
 
         # showing two points' depth
-        point1 = (400, 400)  # (y, x)
-        point2 = (480, 640)
+        point1 = (200, 200)  # (y, x)
+        point2 = (240, 320)
 
         color_image, depth1 = show_point_depth(point1, depth_image, color_image)
         color_image, depth2 = show_point_depth(point2, depth_image, color_image)
         # mm to meters
-        depth1 = depth1 * depth_scale
-        depth2 = depth2 * depth_scale
+        depth1 = depth1 * self.depth_scale
+        depth2 = depth2 * self.depth_scale
 
         # rs2_deproject_pixel_to_point takes pixel (x, y)
         # outputs (x, y, z), the coordinates are in meters
@@ -123,8 +127,8 @@ class ImageListener(Node):
         #   https://github.com/IntelRealSense/librealsense/wiki/Projection-in-RealSense-SDK-2.0?fbclid=IwAR3gogVZe824YUps88Dzp02AN_XzEm1BDb0UbmzfoYvn1qDFb7KzbIz9twU#point-coordinates
         # 理解此函数，需要知道camera model，perspective projection, geometric computer vision
         # 也就是说3D世界的坐标如何与相机上的像素坐标互相转换的
-        point1_3d = rs.rs2_deproject_pixel_to_point(depth_intrin, (point1[1], point1[0]), depth1)
-        point2_3d = rs.rs2_deproject_pixel_to_point(depth_intrin, (point2[1], point2[0]), depth2)
+        point1_3d = rs2.rs2_deproject_pixel_to_point(self.intrinsics, (point1[1], point1[0]), depth1)
+        point2_3d = rs2.rs2_deproject_pixel_to_point(self.intrinsics, (point2[1], point2[0]), depth2)
 
         # 计算这两点的实际距离
         #print(point1_3d, point2_3d)
@@ -146,22 +150,27 @@ class ImageListener(Node):
 
         print_once("image shape: %s" % list(image.shape[:2]))
 
-
-        # put a timestamp for the frame for possible synchronization
-        # and a frame index to look up depth data
-        date_time = str(datetime.datetime.now())
-        image = cv2.putText(
-            image, "#%d: %s" % (frame_count, date_time),
-            (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-            fontScale=1, color=(0, 0, 255), thickness=2)
-
         # show the fps in the visualization
-        current_time = time.time()
-        fps = frame_count / (current_time - start_time)
+        current_timestamp = time.time()
+        fps = self.frame_count / (current_timestamp - self.start_timestamp)
         image = cv2.putText(
             image, "FPS: %d" % int(fps),
             (10, 330), cv2.FONT_HERSHEY_SIMPLEX,
             fontScale=1, color=(0, 0, 255), thickness=2)
+
+        # put a timestamp for the frame for possible synchronization
+        # and a frame index to look up depth data
+        current_time_str = datetime.strptime(str(current_timestamp), '%Y-%m-%d %H:%M:%S')
+        data_timestamp = data.header.stamp.sec # integer time stamp in seconds
+        data_time_str = datetime.strptime(str(data_timestamp), '%Y-%m-%d %H:%M:%S')
+        image = cv2.putText(
+            image, "#%d: %s" % (self.frame_count, current_time_str),
+            (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+            fontScale=1, color=(0, 0, 255), thickness=2)
+
+        print(current_time_str, data_time_str)
+        raise Exception("done.")
+        return
 
         if args.save_to_avi is not None:
 
@@ -176,9 +185,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     image_width, image_height = [int(x) for x in args.image_size.split("x")]
-
-    # depth_value * depth_scale -> meters
-    # depth_scale # 0.001
 
 
     print("Now showing the camera stream. press Q to exit.")
