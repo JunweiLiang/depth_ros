@@ -56,7 +56,7 @@ def parse_intrinsics(cameraInfo):
 
 
 class ImageListener(Node):
-    def __init__(self, rgbd_topic, node_name="image_listener"):
+    def __init__(self, rgbd_topic, video_out=None, node_name="image_listener"):
         super().__init__(node_name)
         self.bridge = CvBridge()
 
@@ -75,7 +75,7 @@ class ImageListener(Node):
         self.delay_time_list = []  # record the delay in average seconds
 
         # for video writer
-        self.out = None
+        self.video_out = video_out
 
 
     def rgbdCallback(self, data):
@@ -180,9 +180,9 @@ class ImageListener(Node):
             (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
             fontScale=1, color=(0, 0, 255), thickness=2)
 
-        if self.out is not None:
+        if self.video_out is not None:
 
-            self.out.write(image)
+            self.video_out.write(image)
 
         # Show the image
         #cv2.imshow('RGB and Depth Stream', image)
@@ -199,9 +199,8 @@ if __name__ == "__main__":
 
     try:
         rclpy.init()
-        listener = ImageListener(args.rgbd_topic)
-        rclpy.spin(listener)
 
+        video_out = None
         if args.save_to_avi is not None:
 
             # cannot save to mp4 file, due to liscensing problem, need to compile opencv from source
@@ -211,15 +210,11 @@ if __name__ == "__main__":
             # the visualization video size
             width_height = (image_width*2, image_height)
 
-            listener.out = cv2.VideoWriter(args.save_to_avi, fourcc, 30.0, width_height)
+            video_out = cv2.VideoWriter(args.save_to_avi, fourcc, 30.0, width_height)
 
-        while True:
+        listener = ImageListener(args.rgbd_topic, video_out)
 
-
-
-            # Press 'q' to quit
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+        rclpy.spin(listener)  # this will be blocked
 
 
     finally:
@@ -228,5 +223,5 @@ if __name__ == "__main__":
         rclpy.shutdown()
         cv2.destroyAllWindows()
         if args.save_to_avi is not None:
-            listener.out.release()
+            video_out.release()
 
