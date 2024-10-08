@@ -255,7 +255,7 @@
     2. run the subscriber to visualize
         # 注意狗子上的路由器，一定要接5V/3A的电源，5V/2A的电源，功率受限会经常断开wifi
 
-        # nano local run, ~0.05-0.06 second delay
+        # nano local run, ~0.05-0.06 second delay, 27 FPS
             # cmd
                 (go2) unitree@ubuntu:~/projects/depth_ros$ python image_listener.py --save ros2_realsense_depth_delay_test_besteffort_ongo2nano.avi
 
@@ -265,7 +265,6 @@
         # on laptop4 with wired connection to LAN, we can directly see this ros topic (需要重启laptop4，才能有线连上路由器)
 
             # 0.14 second delay, 29 FPS
-                # cmd
                 # video
 
             # best effort, got 0.0001 second delay??

@@ -3,6 +3,7 @@
 
 # suppose you have run the realsense ROS 2 package to publish RGB-D image
 # junweil@precognition-laptop4:~/projects/realsense$ ros2 launch realsense2_camera rs_launch.py enable_rgbd:=true enable_sync:=true align_depth.enable:=true enable_color:=true enable_depth:=true camera_namespace:=go2 camera_name:=d435i
+# you may also need depth_qos:=SENSOR_DATA color_qos:=SENSOR_DATA
 
 
 # you can install cv2 with
