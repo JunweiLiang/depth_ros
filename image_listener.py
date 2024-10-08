@@ -2,7 +2,7 @@
 # grab depth camera image and do some computation, get the FPS and latency
 
 # suppose you have run the realsense ROS 2 package to publish RGB-D image
-# junweil@precognition-laptop4:~/projects/realsense$ ros2 launch realsense2_camera rs_launch.py enable_rgbd:=true enable_sync:=true align_depth.enable:=true enable_color:=true enable_depth:=true camera_namespace:=go2 camera_name:=d435i
+# (go2) unitree@ubuntu:~/projects/tennis_project$ ros2 launch realsense2_camera rs_launch.py enable_rgbd:=true enable_sync:=true align_depth.enable:=true enable_color:=true enable_depth:=true depth_module.depth_profile:=640x480x30 rgb_camera.color_profile:=640x480x30 camera_namespace:=go2 camera_name:=d435i
 # you may also need depth_qos:=SENSOR_DATA color_qos:=SENSOR_DATA
 
 

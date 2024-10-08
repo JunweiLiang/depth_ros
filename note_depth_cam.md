@@ -260,26 +260,29 @@
                 (go2) unitree@ubuntu:~/projects/depth_ros$ python image_listener.py --save ros2_realsense_depth_delay_test_besteffort_ongo2nano.avi
 
             # video
+                ros2_realsense_depth_delay_test_ongo2nano.avi
 
 
         # on laptop4 with wired connection to LAN, we can directly see this ros topic (需要重启laptop4，才能有线连上路由器)
 
             # 0.14 second delay, 29 FPS
-                # video
+                # video: ros2_realsense_depth_delay_test_onlaptop4+overwiredgo2nano.avi
 
             # best effort, got 0.0001 second delay??
+                # video: ros2_realsense_depth_delay_test_besteffor_onlaptop4+overwiredgo2nano.avi
 
         # wifi test
             # use a USB wifi connector, disable the laptop one
                 $ sudo ifconfig wlp59s0f0 down
             # no need
 
-            # over wifi, FPS is ~10, best effort is ~15, delay is 0.14 second
-
             # cmd
                 junweil@precognition-laptop4:~/projects/depth_cameras/depth_ros$ python3 image_listener.py --save ros2_realsense_depth_delay_test_besteffort_onlaptop4+overwifigo2nano.avi
 
-            # video
+             # over wifi, FPS is ~10, , delay is 0.14 second,  video:
+                ros2_realsense_depth_delay_test_onlaptop4+overwifigo2nano.avi
+            # best effort is FPS ~15, delay 0.11 second, video:
+                ros2_realsense_depth_delay_test_besteffort_onlaptop4+overwifigo2nano.avi
 ```
 
 3. Orbbec on Ubuntu 24.04
