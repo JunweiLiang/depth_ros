@@ -187,7 +187,7 @@ class ImageListener(Node):
             self.video_out.write(image)
 
         # Show the image
-        #cv2.imshow('RGB and Depth Stream', image)
+        cv2.imshow('RGB and Depth Stream', image)
 
 
 
