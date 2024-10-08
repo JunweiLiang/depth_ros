@@ -189,6 +189,9 @@ class ImageListener(Node):
         # Show the image
         cv2.imshow('RGB and Depth Stream', image)
 
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            raise SystemExit
+
 
 
 if __name__ == "__main__":

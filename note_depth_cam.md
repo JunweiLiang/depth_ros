@@ -119,7 +119,7 @@
         $ conda deactivate
         $ source /opt/ros/jazzy/setup.bash
 
-        junweil@precognition-laptop4:~/projects/realsense$ ros2 launch realsense2_camera rs_launch.py enable_rgbd:=true enable_sync:=true align_depth.enable:=true enable_color:=true enable_depth:=true camera_namespace:=go2 camera_name:=d435i
+        junweil@precognition-laptop4:~/projects/realsense$ ros2 launch realsense2_camera rs_launch.py enable_rgbd:=true enable_sync:=true align_depth.enable:=true enable_color:=true enable_depth:=true depth_module.depth_profile:=640x480x30 rgb_camera.color_profile:=640x480x30 camera_namespace:=go2 camera_name:=d435i
 
             # depth_qos:=SENSOR_DATA color_qos:=SENSOR_DATA
                 # so this can be best_effort, higher frame rate?
@@ -146,6 +146,13 @@
             /parameter_events
             /rosout
             /tf_static
+
+                # RGBD Message
+                std_msgs/Header header
+                sensor_msgs/CameraInfo rgb_camera_info
+                sensor_msgs/CameraInfo depth_camera_info
+                sensor_msgs/Image rgb
+                sensor_msgs/Image depth
 
         # check the Hz
             $ ros2 topic hz /camera/camera/aligned_depth_to_color/image_raw
