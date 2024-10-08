@@ -182,14 +182,108 @@
 
             junweil@precognition-laptop4:~/projects/realsense/realsense-ros/realsense2_camera/scripts$ python3 show_center_depth.py
 
+        2.2 Run opencv to check the delay time,
+
+            # on the same machine, delay time is ~0.05 second
+
+                junweil@precognition-laptop4:~/projects/depth_cameras/depth_ros$ python3 image_listener.py
+
+                # video:
+                    https://github.com/JunweiLiang/depth_ros/blob/main/ros2_realsense_depth_delay_test.avi
+
 
 
 ```
 
 
 2. Realsense on Jetsons
++ Installation
+```
+    1. Reboot the Jetson Nano 8GB on Go2 to set 25W power mode
+        # Ubuntu 20.04, Jetpack 5.1.1
+            # jtop to see status
+        # can connect from the laptop in the same LAN
+            $ ssh unitree@192.168.123.18
+            pwd: 123
 
-3. Orbbec on Ubutn 24.04
+    2. Install ROS 2
+        # no need, go2 already has ROS 2
+            (go2) unitree@ubuntu:~$ ls /opt/ros/foxy/
+
+        # python 3.8
+
+    3. Install Realsense SDK
+        # use apt install, easy with network
+            https://github.com/IntelRealSense/librealsense/blob/master/doc/installation_jetson.md
+
+        3.1 install pyrealsense2
+            # 换清华源
+                pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+            # (go2) unitree@ubuntu:~$ pip install pyrealsense2
+
+        3.2 测试pyrealsense under GUI
+            # clone this: https://github.com/JunweiLiang/tennis_project
+
+            (go2) unitree@ubuntu:~/projects/tennis_project$ python get_depth_images.py
+
+            # FPS 27+
+
+    4. Install Realsense ROS package
+
+        $ sudo apt install ros-foxy-realsense2-*
+
+```
++ Testing
+```
+    # Test with local ROS visualization and see the delay
+
+    1. run the data publisher in one screen session
+
+        (go2) unitree@ubuntu:~/projects/tennis_project$ ros2 launch realsense2_camera rs_launch.py enable_rgbd:=true enable_sync:=true align_depth.enable:=true enable_color:=true enable_depth:=true depth_module.depth_profile:=640x480x30 rgb_camera.color_profile:=640x480x30 camera_namespace:=go2 camera_name:=d435i
+
+            # depth_qos:=SENSOR_DATA color_qos:=SENSOR_DATA
+                # so this can be best_effort, we can get lower latency and higher framerate
+
+            # depth_module.depth_profile:=640x480x30 rgb_camera.color_profile:=640x480x30
+
+            # camera_namespace:=robot1 camera_name:=D455_1
+            # so you get /robot1/D455_1 node
+
+            # to see this code: https://github.com/IntelRealSense/realsense-ros
+                # realsense2_camera/launch/rs_launch.py
+
+    2. run the subscriber to visualize
+        # 注意狗子上的路由器，一定要接5V/3A的电源，5V/2A的电源，功率受限会经常断开wifi
+
+        # nano local run, ~0.05-0.06 second delay
+            # cmd
+                (go2) unitree@ubuntu:~/projects/depth_ros$ python image_listener.py --save ros2_realsense_depth_delay_test_besteffort_ongo2nano.avi
+
+            # video
+
+
+        # on laptop4 with wired connection to LAN, we can directly see this ros topic (需要重启laptop4，才能有线连上路由器)
+
+            # 0.14 second delay, 29 FPS
+                # cmd
+                # video
+
+            # best effort, got 0.0001 second delay??
+
+        # wifi test
+            # use a USB wifi connector, disable the laptop one
+                $ sudo ifconfig wlp59s0f0 down
+            # no need
+
+            # over wifi, FPS is ~10, best effort is ~15, delay is 0.14 second
+
+            # cmd
+                junweil@precognition-laptop4:~/projects/depth_cameras/depth_ros$ python3 image_listener.py --save ros2_realsense_depth_delay_test_besteffort_onlaptop4+overwifigo2nano.avi
+
+            # video
+```
+
+3. Orbbec on Ubuntu 24.04
 ```
 https://github.com/orbbec/OrbbecSDK_ROS2
 ```
