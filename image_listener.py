@@ -92,12 +92,12 @@ class ImageListener(Node):
 
         # already numpy array
         color_image = self.bridge.imgmsg_to_cv2(color_data, color_data.encoding)
+        # we need BGR to display properly
+        color_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)
         depth_image = self.bridge.imgmsg_to_cv2(depth_data, depth_data.encoding)
-
 
         # frame_count start from 1
         self.frame_count += 1
-
 
         if not self.intrinsics:
             # camera intrinsics only need to read once
@@ -149,6 +149,7 @@ class ImageListener(Node):
         depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
 
         # Stack both images horizontally
+
         image = np.hstack((color_image, depth_colormap))
 
         image = image_resize(image, width=1280, height=None)
@@ -168,7 +169,8 @@ class ImageListener(Node):
         # and a frame index to look up depth data
         current_time_str = datetime.fromtimestamp(current_timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
-        data_timestamp = data.header.stamp.sec # integer time stamp in seconds
+        # combine the nano seconds to be more precise
+        data_timestamp = data.header.stamp.sec + float(data.header.stamp.nanosec) * 1e-9 # integer time stamp in seconds
         #data_time_str = datetime.fromtimestamp(data_timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
         delay_time = abs(current_timestamp - data_timestamp)
