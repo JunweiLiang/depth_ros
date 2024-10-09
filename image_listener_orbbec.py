@@ -54,8 +54,9 @@ class ImageListener(Node):
         self.sub_info = self.create_subscription(CameraInfo, color_info_topic, self.infoCallback, 1)
 
         # Set QoS to best effort
+        # https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Quality-of-Service-Settings.html
         qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            reliability=QoSReliabilityPolicy.RELIABLE,
             depth=1
         )
 
