@@ -82,15 +82,17 @@ class ImageListener(Node):
         self.intrinsics = ob.OBCameraIntrinsic()
         self.intrinsics.width = cameraInfo.width
         self.intrinsics.height = cameraInfo.height
-        self.intrinsics.ppx = cameraInfo.k[2]
-        self.intrinsics.ppy = cameraInfo.k[5]
+        self.intrinsics.cx = cameraInfo.k[2]
+        self.intrinsics.cy = cameraInfo.k[5]
         self.intrinsics.fx = cameraInfo.k[0]
         self.intrinsics.fy = cameraInfo.k[4]
+        """
         if cameraInfo.distortion_model == 'plumb_bob':
             self.intrinsics.model = rs2.distortion.brown_conrady
         elif cameraInfo.distortion_model == 'equidistant':
             self.intrinsics.model = rs2.distortion.kannala_brandt4
         self.intrinsics.coeffs = [i for i in cameraInfo.d]
+        """
 
 
     def rgbdCallback(self, color_msg, depth_msg):
