@@ -58,8 +58,8 @@ class ImageListener(Node):
         # for Orbbec, it seems their Best_effort/SENSOR_DATA setting will make FPS slow
         # (or maybe it is because of the approximate time synchronizer)
         qos_profile = QoSProfile(
-            #reliability=QoSReliabilityPolicy.RELIABLE,
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            #reliability=QoSReliabilityPolicy.BEST_EFFORT,
             depth=1
         )
 
