@@ -347,12 +347,12 @@
 
         # launch params: https://github.com/orbbec/OrbbecSDK_ROS2?tab=readme-ov-file#launch-parameters
 
-        junweil@precognition-laptop4:~/projects/depth_cameras/orbbec_ros2_ws$ ros2 launch orbbec_camera gemini_330_series.launch.py color_qos:=SENSOR_DATA depth_qos:=SENSOR_DATA color_width:=640 color_height:=480 color_fps:=30 depth_width:=640 depth_height:=480 depth_fps:=30 enable_color:=true enable_depth:=true depth_registration:=true enable_spatial_filter:=true enable_temporal_filter:=true
+        junweil@precognition-laptop4:~/projects/depth_cameras/orbbec_ros2_ws$ ros2 launch orbbec_camera gemini_330_series.launch.py color_width:=640 color_height:=480 color_fps:=30 depth_width:=640 depth_height:=480 depth_fps:=30 enable_color:=true enable_depth:=true depth_registration:=true enable_spatial_filter:=true enable_temporal_filter:=true
 
         # 640x480x30 profile and depth align to color:
             color_width:=640 color_height:=480 color_fps:=30 depth_width:=640 depth_height:=480 depth_fps:=30 enable_color:=true enable_depth:=true depth_registration:=true
 
-        # best effort
+        # best effort [10/09/2024] this does not work, we need to run the default profile
             color_qos:=SENSOR_DATA depth_qos:=SENSOR_DATA
 
         # compressed image?
@@ -360,6 +360,10 @@
 
         # getting synchronized image and depth
             https://github.com/orbbec/OrbbecSDK_ROS2/issues/37#issuecomment-2149734469
+
+    2. run visualization
+
+        junweil@precognition-laptop4:~/projects/depth_cameras/depth_ros$ python3 image_listener_orbbec.py
 
 
 ```

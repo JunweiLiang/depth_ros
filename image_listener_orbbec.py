@@ -55,8 +55,11 @@ class ImageListener(Node):
 
         # Set QoS to best effort
         # https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Quality-of-Service-Settings.html
+        # for Orbbec, it seems their Best_effort/SENSOR_DATA setting will make FPS slow
+        # (or maybe it is because of the approximate time synchronizer)
         qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.RELIABLE,
+            #reliability=QoSReliabilityPolicy.RELIABLE,
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
             depth=1
         )
 
@@ -65,7 +68,7 @@ class ImageListener(Node):
 
         # https://docs.ros.org/en/rolling/p/message_filters/Tutorials/Approximate-Synchronizer-Python.html
         # queue_size, max_delay in seconds
-        self.ts = ApproximateTimeSynchronizer([self.color_sub, self.depth_sub], 1, 0.1)
+        self.ts = ApproximateTimeSynchronizer([self.color_sub, self.depth_sub], 10, 0.1)
         self.ts.registerCallback(self.rgbdCallback)
 
         # define some global variables, used in callbacks
