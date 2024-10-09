@@ -42,7 +42,7 @@ def print_once(string):
         print(string)
         printed = True
 
-def deproject_pixel_to_point_matmul(cam_intrinsics, xy, depth):
+def deproject_pixel_to_point(cam_intrinsics, xy, depth):
     # compute intrinsic matrix from field of view and image size:
     #   https://github.com/JunweiLiang/Multiverse/blob/master/forking_paths_dataset/code/utils.py#L930
     intrinsics = np.identity(3) # [1 0 0][0 1 0][0 0 1]
