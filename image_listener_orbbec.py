@@ -21,6 +21,7 @@ from cv_bridge import CvBridge
 
 # need to gather two topics and sync
 from message_filters import ApproximateTimeSynchronizer, Subscriber
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy
 
 # from orbbec
 import pyorbbecsdk as ob
@@ -52,8 +53,14 @@ class ImageListener(Node):
         # get the camera info
         self.sub_info = self.create_subscription(CameraInfo, color_info_topic, self.infoCallback, 1)
 
-        self.color_sub = Subscriber(self, msg_Image, color_topic)
-        self.depth_sub = Subscriber(self, msg_Image, depth_topic)
+        # Set QoS to best effort
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            depth=1
+        )
+
+        self.color_sub = Subscriber(self, msg_Image, color_topic, qos_profile=qos_profile)
+        self.depth_sub = Subscriber(self, msg_Image, depth_topic, qos_profile=qos_profile)
 
         # https://docs.ros.org/en/rolling/p/message_filters/Tutorials/Approximate-Synchronizer-Python.html
         # queue_size, max_delay in seconds
