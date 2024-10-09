@@ -1,8 +1,8 @@
 # coding=utf-8
 # grab depth camera image and do some computation, get the FPS and latency
 
-# suppose you have run the realsense ROS 2 package to publish RGB-D image
-# (go2) unitree@ubuntu:~/projects/tennis_project$ ros2 launch realsense2_camera rs_launch.py enable_rgbd:=true enable_sync:=true align_depth.enable:=true enable_color:=true enable_depth:=true depth_module.depth_profile:=640x480x30 rgb_camera.color_profile:=640x480x30 camera_namespace:=go2 camera_name:=d435i
+# suppose you have run the Orbbec ROS 2 package to publish RGB-D image
+#   junweil@precognition-laptop4:~/projects/depth_cameras/orbbec_ros2_ws$ ros2 launch orbbec_camera gemini_330_series.launch.py  color_width:=640 color_height:=480 color_fps:=30 depth_width:=640 depth_height:=480 depth_fps:=30 enable_color:=true enable_depth:=true depth_registration:=true enable_spatial_filter:=true enable_temporal_filter:=true
 # you may also need depth_qos:=SENSOR_DATA color_qos:=SENSOR_DATA
 
 
@@ -15,10 +15,15 @@ import pyrealsense2 as rs2
 # from ROS2
 import rclpy
 from rclpy.node import Node
+from sensor_msgs.msg import Image as msg_Image
+from sensor_msgs.msg import CameraInfo
 from cv_bridge import CvBridge
 
-# from the realsense-ros package
-from realsense2_camera_msgs.msg import RGBD
+# need to gather two topics and sync
+from message_filters import ApproximateTimeSynchronizer, Subscriber
+
+# from orbbec
+import pyorbbecsdk as ob
 
 import sys
 import argparse
@@ -28,36 +33,32 @@ import time # for fps compute
 
 from utils import image_resize
 from utils import show_point_depth
+from utils import deproject_pixel_to_point
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--save_to_avi", default=None, help="save the visualization/rgb video to a avi file")
 parser.add_argument("--image_size", default="640x480")
-parser.add_argument("--rgbd_topic", default="/go2/d435i/rgbd")
-
-
-def parse_intrinsics(cameraInfo):
-    intrinsics = rs2.intrinsics()
-    intrinsics.width = cameraInfo.width
-    intrinsics.height = cameraInfo.height
-    intrinsics.ppx = cameraInfo.k[2]
-    intrinsics.ppy = cameraInfo.k[5]
-    intrinsics.fx = cameraInfo.k[0]
-    intrinsics.fy = cameraInfo.k[4]
-    if cameraInfo.distortion_model == 'plumb_bob':
-        intrinsics.model = rs2.distortion.brown_conrady
-    elif cameraInfo.distortion_model == 'equidistant':
-        intrinsics.model = rs2.distortion.kannala_brandt4
-    intrinsics.coeffs = [i for i in cameraInfo.d]
-    return intrinsics
+parser.add_argument("--color_topic", default="/camera/color/image_raw")
+parser.add_argument("--depth_topic", default="/camera/depth/image_raw")
+parser.add_argument("--color_info_topic", default="/camera/color/camera_info")
 
 
 class ImageListener(Node):
-    def __init__(self, rgbd_topic, video_out=None, node_name="image_listener"):
+    def __init__(self, color_topic, depth_topic, color_info_topic, video_out=None, node_name="orbbec_image_listener"):
         super().__init__(node_name)
         self.bridge = CvBridge()
 
-        self.sub = self.create_subscription(RGBD, rgbd_topic, self.rgbdCallback, 1) # queue_size
+        # get the camera info
+        self.sub_info = self.create_subscription(CameraInfo, color_info_topic, self.infoCallback, 1)
+
+        self.color_sub = Subscriber(self, msg_Image, color_topic)
+        self.depth_sub = Subscriber(self, msg_Image, depth_topic)
+
+        # https://docs.ros.org/en/rolling/p/message_filters/Tutorials/Approximate-Synchronizer-Python.html
+        # queue_size, max_delay in seconds
+        self.ts = ApproximateTimeSynchronizer([self.color_sub, self.depth_sub], 1, 0.1)
+        self.ts.registerCallback(self.rgbdCallback)
 
         # define some global variables, used in callbacks
         self.start_timestamp = time.time() # in secs
@@ -74,18 +75,32 @@ class ImageListener(Node):
         # for video writer
         self.video_out = video_out
 
+    def infoCallback(self, cameraInfo):
+        # get the camera info once
+        if self.intrinsics:
+            return
+        self.intrinsics = ob.OBCameraIntrinsic()
+        self.intrinsics.width = cameraInfo.width
+        self.intrinsics.height = cameraInfo.height
+        self.intrinsics.ppx = cameraInfo.k[2]
+        self.intrinsics.ppy = cameraInfo.k[5]
+        self.intrinsics.fx = cameraInfo.k[0]
+        self.intrinsics.fy = cameraInfo.k[4]
+        if cameraInfo.distortion_model == 'plumb_bob':
+            self.intrinsics.model = rs2.distortion.brown_conrady
+        elif cameraInfo.distortion_model == 'equidistant':
+            self.intrinsics.model = rs2.distortion.kannala_brandt4
+        self.intrinsics.coeffs = [i for i in cameraInfo.d]
 
-    def rgbdCallback(self, data):
-        # here the data is parse as the RGBD message type
 
-        """
-        print(dir(data))
-        ['SLOT_TYPES', '__class__', '__delattr__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getstate__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__slots__', '__str__', '__subclasshook__', '_check_fields', '_depth', '_depth_camera_info', '_fields_and_field_types', '_header', '_rgb', '_rgb_camera_info', 'depth', 'depth_camera_info', 'get_fields_and_field_types', 'header', 'rgb', 'rgb_camera_info']
-        # see here: https://github.com/IntelRealSense/realsense-ros/blob/ros2-master/realsense2_camera_msgs/msg/RGBD.msg
-        """
+    def rgbdCallback(self, color_msg, depth_msg):
+        if not self.intrinsics:
+            return
 
-        color_data = data.rgb
-        depth_data = data.depth
+        color_data = color_msg
+        depth_data = depth_msg
+        # color_timestamp = color_msg.header.stamp
+        # depth_timestamp = depth_msg.header.stamp
 
         # already numpy array
         color_image = self.bridge.imgmsg_to_cv2(color_data, color_data.encoding)
@@ -95,20 +110,6 @@ class ImageListener(Node):
 
         # frame_count start from 1
         self.frame_count += 1
-
-        if not self.intrinsics:
-            # camera intrinsics only need to read once
-            self.intrinsics = parse_intrinsics(data.rgb_camera_info)
-
-        #(480, 640) (480, 640, 3)
-        # [[2402 2393 2393 2384 2375 2375 2366 2366 2366 2357] # so the depth should be in mm
-        # [ 640x480  p[308.003 247.865]  f[607.814 607.763]  Brown Conrady [0 0 0 0 0] ]
-        #print(depth_image[250:255, 320:330])
-        #print(depth_image.shape, color_image.shape)
-        #print(self.intrinsics)
-
-        # std_msgs.msg.Header(stamp=builtin_interfaces.msg.Time(sec=1728308261, nanosec=500469238), frame_id='camera_rgbd_optical_frame')
-        #print(data.header)
 
         # for visualization
 
@@ -129,8 +130,8 @@ class ImageListener(Node):
         #   https://github.com/IntelRealSense/librealsense/wiki/Projection-in-RealSense-SDK-2.0?fbclid=IwAR3gogVZe824YUps88Dzp02AN_XzEm1BDb0UbmzfoYvn1qDFb7KzbIz9twU#point-coordinates
         # 理解此函数，需要知道camera model，perspective projection, geometric computer vision
         # 也就是说3D世界的坐标如何与相机上的像素坐标互相转换的
-        point1_3d = rs2.rs2_deproject_pixel_to_point(self.intrinsics, (point1[1], point1[0]), depth1)
-        point2_3d = rs2.rs2_deproject_pixel_to_point(self.intrinsics, (point2[1], point2[0]), depth2)
+        point1_3d = deproject_pixel_to_point(self.intrinsics, (point1[1], point1[0]), depth1)
+        point2_3d = deproject_pixel_to_point(self.intrinsics, (point2[1], point2[0]), depth2)
 
         # 计算这两点的实际距离
         #print(point1_3d, point2_3d)
@@ -167,7 +168,7 @@ class ImageListener(Node):
         current_time_str = datetime.fromtimestamp(current_timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
         # combine the nano seconds to be more precise
-        data_timestamp = data.header.stamp.sec + float(data.header.stamp.nanosec) * 1e-9
+        data_timestamp = color_msg.header.stamp.sec + float(color_msg.header.stamp.nanosec) * 1e-9
         #data_time_str = datetime.fromtimestamp(data_timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
         delay_time = abs(current_timestamp - data_timestamp)
@@ -214,7 +215,7 @@ if __name__ == "__main__":
 
             video_out = cv2.VideoWriter(args.save_to_avi, fourcc, 30.0, width_height)
 
-        listener = ImageListener(args.rgbd_topic, video_out)
+        listener = ImageListener(args.color_topic, args.depth_topic,args.color_info_topic, video_out)
 
         rclpy.spin(listener)  # this will be blocked
 

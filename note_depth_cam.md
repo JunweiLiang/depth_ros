@@ -253,6 +253,7 @@
                 # realsense2_camera/launch/rs_launch.py
 
     2. run the subscriber to visualize
+        # Jetson Nano换成25W模式，最大功率
         # 注意狗子上的路由器，一定要接5V/3A的电源，5V/2A的电源，功率受限会经常断开wifi
 
         # nano local run, ~0.05-0.06 second delay, 27 FPS
@@ -286,6 +287,79 @@
 ```
 
 3. Orbbec on Ubuntu 24.04
++ Installation
 ```
-https://github.com/orbbec/OrbbecSDK_ROS2
+    # https://github.com/orbbec/OrbbecSDK_ROS2
+    # python sdk: https://github.com/orbbec/pyorbbecsdk
+
+    1. ROS 2 installation done
+
+    2. Install Orbbec ROS 2 package
+
+        # see full instruction here: https://github.com/orbbec/OrbbecSDK_ROS2?tab=readme-ov-file#installation-instructions
+
+        junweil@precognition-laptop4:~/projects/depth_cameras/orbbec_ros2_ws/src$ git clone https://github.com/orbbec/OrbbecSDK_ROS2.git
+
+        ..
+        junweil@precognition-laptop4:~/projects/depth_cameras/orbbec_ros2_ws$ colcon build --event-handlers  console_direct+  --cmake-args  -DCMAKE_BUILD_TYPE=Release
+
+
+    3. Install Python SDK
+        # make a python wheel to install
+            https://github.com/orbbec/pyorbbecsdk?tab=readme-ov-file#making-a-python-wheel
+
+            # open3D does not support python3.12 yet, ignored
+
+            installed to
+                /home/junweil/.local/lib/python3.12/site-packages/pyorbbecsdk.cpython-312-x86_64-linux-gnu.so
+```
++ Testing
+```
+    # we use Orbbec Gemini 336L: https://www.orbbec.com/products/stereo-vision-camera/gemini-336l/
+    # ROS2 下掉帧？https://github.com/orbbec/OrbbecSDK_ROS2/blob/main/docs/fastdds_tuning.md
+
+    1. start the camera publishing
+
+        # need to source two thing
+            $ source ros2
+            junweil@precognition-laptop4:~/projects/depth_cameras/orbbec_ros2_ws$ . ./install/setup.bash
+
+        junweil@precognition-laptop4:~/projects/depth_cameras/orbbec_ros2_ws$ ros2 launch orbbec_camera gemini_330_series.launch.py
+
+        # other launch file
+            junweil@precognition-laptop4:~/projects/depth_cameras/orbbec_ros2_ws$ ls src/OrbbecSDK_ROS2/orbbec_camera/launch/
+
+        # we have these topics
+            junweil@precognition-laptop4:~/projects/depth_cameras/orbbec_ros2_ws$ ros2 topic list
+            /camera/color/camera_info
+            /camera/color/image_raw
+            /camera/color/metadata
+            /camera/depth/camera_info
+            /camera/depth/image_raw
+            /camera/depth/metadata
+            /camera/depth_filter_status
+            /camera/depth_to_color
+            /diagnostics
+            /parameter_events
+            /rosout
+            /tf
+            /tf_static
+
+        # launch params: https://github.com/orbbec/OrbbecSDK_ROS2?tab=readme-ov-file#launch-parameters
+
+        junweil@precognition-laptop4:~/projects/depth_cameras/orbbec_ros2_ws$ ros2 launch orbbec_camera gemini_330_series.launch.py color_qos:=SENSOR_DATA depth_qos:=SENSOR_DATA color_width:=640 color_height:=480 color_fps:=30 depth_width:=640 depth_height:=480 depth_fps:=30 enable_color:=true enable_depth:=true depth_registration:=true enable_spatial_filter:=true enable_temporal_filter:=true
+
+        # 640x480x30 profile and depth align to color:
+            color_width:=640 color_height:=480 color_fps:=30 depth_width:=640 depth_height:=480 depth_fps:=30 enable_color:=true enable_depth:=true depth_registration:=true
+
+        # best effort
+            color_qos:=SENSOR_DATA depth_qos:=SENSOR_DATA
+
+        # compressed image?
+            https://github.com/orbbec/OrbbecSDK_ROS2?tab=readme-ov-file#compressed-image
+
+        # getting synchronized image and depth
+            https://github.com/orbbec/OrbbecSDK_ROS2/issues/37#issuecomment-2149734469
+
+
 ```

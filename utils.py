@@ -42,6 +42,31 @@ def print_once(string):
         print(string)
         printed = True
 
+def deproject_pixel_to_point_matmul(cam_intrinsics, xy, depth):
+    # compute intrinsic matrix from field of view and image size:
+    #   https://github.com/JunweiLiang/Multiverse/blob/master/forking_paths_dataset/code/utils.py#L930
+    intrinsics = np.identity(3) # [1 0 0][0 1 0][0 0 1]
+    # focal length
+    intrinsics[0, 0] = cam_intrinsics.fx
+    intrinsics[1, 1] = cam_intrinsics.fy
+    # center of image
+    intrinsics[0, 2] = cam_intrinsics.cx
+    intrinsics[1, 2] = cam_intrinsics.cy
+
+    # get Homogenous coordinates of 2D point camera
+    x, y = xy
+    p_c_H = np.array([x, y, 1.]).reshape(3, 1) # shape: (3, N), N=1
+
+    # so 3D point in the camera coordinate frame is given by:
+    # tensor shape changes: 3x3 matmul 3xN -> 3xN
+    p_c_w = np.matmul(np.linalg.inv(intrinsics), p_c_H) * depth
+
+    # now you can do np.dot(camera_Rt, p_c_w_H) to get 3D point in the world coordinate frame
+
+    # See also an example for CARLA is here: https://github.com/JunweiLiang/Multiverse/blob/master/forking_paths_dataset/code/utils.py#L205
+
+    return p_c_w.squeeze().tolist()
+
 def show_point_depth(point, depth_image, color_image):
     """
         point: (y, x)
