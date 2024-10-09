@@ -199,6 +199,7 @@ if __name__ == "__main__":
 
     print("Now showing the camera stream. press Q to exit.")
 
+    listener = None
     try:
         rclpy.init()
 
@@ -226,4 +227,14 @@ if __name__ == "__main__":
         cv2.destroyAllWindows()
         if args.save_to_avi is not None:
             video_out.release()
+
+        # print out some stats
+        if listener:
+            end_timestamp = time.time()
+            run_time = (end_timestamp - listener.start_timestamp)
+            fps = listener.frame_count / run_time
+            avg_delay = np.mean(listener.delay_time_list)
+
+            print("total run time %.2f secs, FPS %.2f, avg_delay %.3f secs" % (
+                run_time, fps, avg_delay))
 
