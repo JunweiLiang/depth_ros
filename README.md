@@ -2,7 +2,7 @@
 
 <div align="center">
   <div style="">
-      <img src="exp_10102024.png" width="600px" />
+      <img src="exp_10102024.png" width="800px" />
   </div>
   <br/>
 </div>
